@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>小智电脑助手</title>
+<style>
+:root{font-family:Inter,"Microsoft YaHei",system-ui,sans-serif;background:#f5f6f8;color:#1f2328}body{margin:0}.wrap{max-width:1080px;margin:32px auto;padding:0 20px}.hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:20px}.hero h1{margin:0 0 8px;font-size:30px}.sub{color:#667085}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef2ff;margin-left:8px;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:18px;box-shadow:0 3px 18px rgba(0,0,0,.04)}.card h2{font-size:18px;margin:0 0 14px}.field{margin:12px 0}.field label{display:block;font-size:13px;color:#475467;margin-bottom:6px}.row{display:flex;gap:8px}.row>*{flex:1}input,select{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d0d5dd;border-radius:9px;font-size:14px;background:#fff}.check{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#475467;margin:10px 0}.check input{width:auto;margin-top:2px}button{border:0;border-radius:9px;padding:10px 14px;font-weight:600;cursor:pointer;background:#111827;color:white}.secondary{background:#eef2f6;color:#1f2937}.danger{background:#b42318}.ok{color:#067647}.err{color:#b42318}.muted{color:#667085;font-size:13px}.statusBox{padding:12px;border-radius:10px;background:#f8fafc;margin:10px 0;white-space:pre-wrap}.qr{width:260px;height:260px;object-fit:contain;border:1px solid #e5e7eb;border-radius:12px;background:white;display:none}.wide{grid-column:1/-1}.tableWrap{overflow:auto;max-height:420px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px;border-bottom:1px solid #eef0f2;vertical-align:top}th{position:sticky;top:0;background:white}.actions{display:flex;gap:8px;flex-wrap:wrap}.footer{margin:18px 0 40px;color:#667085;font-size:12px}.warn{padding:10px 12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;color:#9a3412;font-size:13px}@media(max-width:800px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.hero{display:block}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div><h1>小智电脑助手 <span class="badge">本机控制台</span></h1><div class="sub">普通微信 → Task Center → Local / Direct DeepSeek / Harness → 文件与交付</div></div>
+    <div class="actions"><button class="secondary" onclick="refresh()">刷新状态</button><button class="secondary" onclick="openLogs()">打开日志</button></div>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>1. 工作空间与 DeepSeek</h2>
+      <div class="field"><label>Harness 工作空间</label><div class="row"><input id="workspace" placeholder="例如 D:\\XiaoZhiWorkspace"/><button class="secondary" style="flex:0 0 auto" onclick="browse()">选择</button></div></div>
+      <div class="field"><label>DeepSeek API Key</label><input id="apiKey" type="password" placeholder="sk-...（保存时使用 Windows DPAPI 加密）"/></div>
+      <div class="field"><label>模型</label><select id="model"><option value="deepseek-flash">deepseek-flash（默认）</option><option value="deepseek-v4-pro">deepseek-v4-pro</option></select></div>
+      <div class="check"><input id="safe" type="checkbox" checked/><span>优先使用 Harness workspace-write 安全模式。</span></div>
+      <div class="check"><input id="fallback" type="checkbox" checked/><span>Windows 沙箱命中已知执行链故障时，允许自动退到 danger-full-access 兼容模式。仅建议个人 MVP 使用。</span></div>
+      <div class="warn">兼容模式能提高当前 Windows Harness 的可用性，但不是商业版安全隔离方案。程序不会用管理员权限启动；本地确定性操作由白名单 Driver 执行。</div>
+      <div class="actions" style="margin-top:12px"><button onclick="saveConfig()">保存配置</button><button class="secondary" onclick="testApi()">测试 API</button><button class="secondary" onclick="openWorkspace()">打开工作空间</button></div>
+      <div id="configMsg" class="statusBox muted">尚未读取状态</div>
+    </section>
+
+    <section class="card">
+      <h2>2. 微信 Claw / WeixinChannel</h2>
+      <div id="wxStatus" class="statusBox">读取中...</div>
+      <div class="actions"><button onclick="loginWx(false)">连接微信</button><button class="secondary" onclick="loginWx(true)">重新扫码</button><button class="secondary" onclick="startWx()">开始监听</button><button class="secondary" onclick="stopWx()">停止监听</button></div>
+      <div style="margin-top:14px"><img id="qr" class="qr" alt="微信登录二维码" /></div>
+      <div id="verifyArea" style="display:none;margin-top:10px"><div class="field"><label>手机微信显示的验证码</label><div class="row"><input id="verifyCode"/><button onclick="submitVerify()">提交</button></div></div></div>
+      <p class="muted">微信通道只负责收/发消息与文件，不负责思考、任务状态或审批。</p>
+    </section>
+
+    <section class="card wide">
+      <h2>3. 最近任务</h2>
+      <div class="tableWrap"><table><thead><tr><th>任务</th><th>状态</th><th>路由</th><th>版本</th><th>最后动作</th><th>交付</th><th>错误</th></tr></thead><tbody id="tasks"></tbody></table></div>
+    </section>
+
+    <section class="card wide">
+      <h2>可以直接在手机微信里说</h2>
+      <div class="statusBox">把下载目录里的销售表整理一下，分析异常，做一份 PPT，做好先发我。\n\n第二页简单一点。\n\n可以，这版发给王总。\n\n打开微信。\n\n把桌面上的报价表复制到文档目录。\n\n帮我写一份通知。\n\n研究这个行业，做 Word 和 PPT。</div>
+      <p class="muted">审批交付会锁定具体版本与 SHA256；发送给真实微信联系人时走桌面微信 Driver，不会在批准后重新生成文件。</p>
+    </section>
+  </div>
+  <div class="footer">控制台仅监听 127.0.0.1，本机访问。关闭浏览器不会停止小智后台；可在此页停止微信监听，或退出 Windows 会话。</div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+async function jget(url){const r=await fetch(url,{cache:'no-store'});return await r.json()}
+async function jpost(url,data={}){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});const x=await r.json();if(!r.ok||x.ok===false)throw new Error(x.error||('HTTP '+r.status));return x}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function refresh(){try{const s=await jget('/api/status');$('workspace').value=s.workspace||$('workspace').value||'';$('model').value=s.model||'deepseek-flash';$('safe').checked=!!s.harness_safe_mode;$('fallback').checked=!!s.allow_harness_full_access_fallback;$('configMsg').innerHTML=(s.configured?'<span class="ok">配置已完成</span>':'<span class="err">尚未完成配置</span>')+'\nAPI Key: '+(s.deepseek_api_configured?'已保存':'未保存')+'\nWorkspace: '+esc(s.workspace||'-');const w=s.weixin||{};$('wxStatus').innerHTML='状态: <b>'+esc(w.status||'-')+'</b>\n'+esc(w.detail||'')+'\n协议: '+esc(w.protocol||'2.4.9');if(['qr_ready','scanned','need_verifycode'].includes(w.status)){$('qr').style.display='block';$('qr').src='/api/weixin/qr?t='+Date.now()}else{$('qr').style.display='none'}$('verifyArea').style.display=w.status==='need_verifycode'?'block':'none';renderTasks(s.tasks||[])}catch(e){$('configMsg').textContent='读取状态失败: '+e}}
+function renderTasks(rows){$('tasks').innerHTML=rows.map(t=>`<tr><td>${esc(t.task_id)}</td><td>${esc(t.status)}</td><td>${esc(t.route||'')}</td><td>V${esc(t.version||0)}</td><td>${esc(t.latest_action||'')}</td><td>${esc(t.delivery_contact||t.review_contact||'')}</td><td class="err">${esc(t.error||'')}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">还没有任务</td></tr>'}
+async function browse(){try{const x=await jpost('/api/browse-workspace');if(x.path)$('workspace').value=x.path}catch(e){alert(e)}}
+async function saveConfig(){try{const x=await jpost('/api/config',{workspace:$('workspace').value,api_key:$('apiKey').value,model:$('model').value,harness_safe_mode:$('safe').checked,allow_harness_full_access_fallback:$('fallback').checked,auto_start_weixin:true});$('apiKey').value='';$('configMsg').textContent='保存成功: '+x.workspace;await refresh()}catch(e){$('configMsg').textContent='保存失败: '+e}}
+async function testApi(){try{$('configMsg').textContent='正在测试 DeepSeek API...';const x=await jpost('/api/test-api');$('configMsg').innerHTML='<span class="ok">API 正常</span>\n'+esc(x.response)}catch(e){$('configMsg').innerHTML='<span class="err">API 测试失败</span>\n'+esc(e)}}
+async function loginWx(force){try{await jpost('/api/weixin/login',{force});setTimeout(refresh,700)}catch(e){alert(e)}}
+async function submitVerify(){try{await jpost('/api/weixin/verify',{code:$('verifyCode').value});$('verifyCode').value=''}catch(e){alert(e)}}
+async function startWx(){try{await jpost('/api/weixin/start');await refresh()}catch(e){alert(e)}}
+async function stopWx(){try{await jpost('/api/weixin/stop');await refresh()}catch(e){alert(e)}}
+async function openWorkspace(){try{await jpost('/api/open-workspace')}catch(e){alert(e)}}
+async function openLogs(){try{await jpost('/api/open-logs')}catch(e){alert(e)}}
+refresh();setInterval(refresh,3000);
+</script>
+</body>
+</html>
